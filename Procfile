@@ -1,1 +1,2 @@
 web: gunicorn jarvis_backend.wsgi:application --bind 0.0.0.0:$PORT --chdir jarvis_backend
+
