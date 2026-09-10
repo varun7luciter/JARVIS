@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S — Just A Rather Very Intelligent System</title>
+    <meta name="description" content="Cinematic futuristic AI voice assistant command center inspired by Iron Man's JARVIS, powered by Groq API and Django.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for HUD icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-jarvis">
+    <!-- Ambient Background FX -->
+    <div class="cyber-grid-bg"></div>
+    <div class="scanline-overlay"></div>
+    <canvas id="ambientParticleCanvas" class="ambient-particles"></canvas>
+    
+    <!-- Main Command Center Wrapper -->
+    <div class="jarvis-hud-container">
+        
+        <!-- ================= TOP HEADER ================= -->
+        <header class="hud-header">
+            <div class="hud-header-left">
+                <div class="status-indicator">
+                    <span class="status-pulse-dot" id="systemStatusDot"></span>
+                    <div class="status-text-group">
+                        <span class="status-title" id="systemStatusText">ONLINE</span>
+                        <span class="status-subtitle">SYSTEM ACTIVE • MK VII</span>
+                    </div>
+                </div>
+                <div class="hud-badge security-badge">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>DEFENSE: NOMINAL</span>
+                </div>
+            </div>
+
+            <div class="hud-header-center">
+                <div class="hud-logo-wrapper">
+                    <h1 class="hud-main-title">J.A.R.V.I.S</h1>
+                    <div class="hud-subtitle">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+                </div>
+            </div>
+
+            <div class="hud-header-right">
+                <div class="hud-telemetry-pill">
+                    <i class="fa-solid fa-bolt-lightning text-cyan"></i>
+                    <span id="powerLevelDisplay">3.2 GIGA-JOULES</span>
+                </div>
+                <div class="hud-telemetry-pill">
+                    <i class="fa-solid fa-wifi text-cyan"></i>
+                    <span id="networkPing">24ms</span>
+                </div>
+                <div class="hud-clock-widget">
+                    <div class="hud-time" id="liveClockTime">00:00:00</div>
+                    <div class="hud-date" id="liveClockDate">LOADING DATE...</div>
+                </div>
+                <button class="hud-icon-btn" id="voiceMuteToggleBtn" title="Toggle Audio Synthesis Voice" aria-label="Toggle Voice">
+                    <i class="fa-solid fa-volume-high" id="voiceMuteIcon"></i>
+                </button>
+                <button class="hud-icon-btn btn-power" id="systemRebootBtn" title="Reboot JARVIS Systems" aria-label="Reboot System">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- ================= MAIN COMMAND DASHBOARD ================= -->
+        <main class="hud-main-grid">
+            
+            <!-- ====== LEFT COLUMN: VOICE CONTROL & AUDIO DIAGNOSTICS ====== -->
+            <aside class="hud-panel left-panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <i class="fa-solid fa-microphone-lines panel-icon"></i>
+                        <h2>VOICE CONTROLLER</h2>
+                    </div>
+                    <span class="hud-chip" id="micStatusChip">MIC STANDBY</span>
+                </div>
+
+                <div class="panel-content">
+                    <!-- Audio Waveform Visualizer -->
+                    <div class="hud-card waveform-card">
+                        <div class="card-label-row">
+                            <span class="card-label">ACOUSTIC FREQUENCY SPECTRUM</span>
+                            <span class="freq-hz" id="freqReadout">44.1 kHz</span>
+                        </div>
+                        <div class="canvas-waveform-container">
+                            <canvas id="waveformCanvas" width="320" height="110"></canvas>
+                        </div>
+                        <div class="audio-levels-bar">
+                            <div class="level-indicator level-low"></div>
+                            <div class="level-indicator level-mid"></div>
+                            <div class="level-indicator level-high"></div>
+                            <div class="level-indicator level-peak" id="audioPeakIndicator"></div>
+                        </div>
+                    </div>
+
+                    <!-- Voice Controls & Switches -->
+                    <div class="hud-card voice-settings-card">
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <span class="toggle-title">Continuous Listening</span>
+                                <span class="toggle-desc">Listen persistently for commands</span>
+                            </div>
+                            <label class="cyber-switch">
+                                <input type="checkbox" id="continuousListenSwitch" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-row">
+                            <div class="toggle-info">
+                                <span class="toggle-title">Wake-Word Detector</span>
+                                <span class="toggle-desc">Activate on keyword "JARVIS"</span>
+                            </div>
+                            <label class="cyber-switch">
+                                <input type="checkbox" id="wakeWordSwitch" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Live Transcript Box -->
+                    <div class="hud-card live-transcript-card">
+                        <div class="card-label-row">
+                            <span class="card-label">VOICE STREAM BUFFER</span>
+                            <span class="hud-live-tag" id="listeningIndicatorTag">● IDLE</span>
+                        </div>
+                        <div class="transcript-viewport" id="transcriptViewport">
+                            <p class="transcript-placeholder" id="transcriptPlaceholder">Say "JARVIS" or press the Arc Reactor to initiate voice uplink...</p>
+                            <p class="live-interim-text" id="liveInterimText"></p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Command Hotlinks -->
+                    <div class="hud-card quick-commands-card">
+                        <div class="card-label-row">
+                            <span class="card-label">TACTICAL VOICE COMMANDS</span>
+                        </div>
+                        <div class="quick-commands-grid">
+                            <button class="cmd-chip-btn" data-command="What is the current time?">
+                                <i class="fa-solid fa-clock"></i> Current Time
+                            </button>
+                            <button class="cmd-chip-btn" data-command="Tell me a joke">
+                                <i class="fa-solid fa-face-smile"></i> Tell a Joke
+                            </button>
+                            <button class="cmd-chip-btn" data-command="Open YouTube">
+                                <i class="fa-brands fa-youtube"></i> Open YouTube
+                            </button>
+                            <button class="cmd-chip-btn" data-command="Search the web for Iron Man Mark 85">
+                                <i class="fa-solid fa-magnifying-glass"></i> Search Web
+                            </button>
+                            <button class="cmd-chip-btn" data-command="Open Calculator">
+                                <i class="fa-solid fa-calculator"></i> Calculator
+                            </button>
+                            <button class="cmd-chip-btn" data-command="Open Files">
+                                <i class="fa-solid fa-folder-open"></i> Open Files
+                            </button>
+                            <button class="cmd-chip-btn" data-command="Run complete system diagnostics">
+                                <i class="fa-solid fa-chart-line"></i> System Status
+                            </button>
+                            <button class="cmd-chip-btn btn-danger-chip" id="clearChatHistoryBtn">
+                                <i class="fa-solid fa-trash-can"></i> Clear History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ====== CENTER COLUMN: ARC REACTOR COMMAND CORE ====== -->
+            <section class="hud-center-stage">
+                
+                <!-- HUD Targeting Bracket Top -->
+                <div class="hud-target-bracket bracket-top">
+                    <span class="bracket-label">REACTOR CORE MARK VII • PALLADIUM-VIBRANIUM MATRIX</span>
+                    <span class="bracket-value" id="reactorOutputText">OUTPUT: 100% NOMINAL</span>
+                </div>
+
+                <!-- ARC REACTOR MASTER COMPONENT -->
+                <div class="arc-reactor-outer-wrapper">
+                    
+                    <!-- Pulsing Sonar Waves Background -->
+                    <div class="sonar-wave wave-1"></div>
+                    <div class="sonar-wave wave-2"></div>
+                    <div class="sonar-wave wave-3"></div>
+
+                    <!-- The Arc Reactor Element (Interactive) -->
+                    <div class="arc-reactor state-idle" id="arcReactor" title="Click to activate Voice Recognition">
+                        
+                        <!-- Layer 0: Ambient Core Ray Canvas -->
+                        <canvas id="reactorSparkCanvas" class="reactor-spark-canvas" width="400" height="400"></canvas>
+
+                        <!-- Layer 1: Outer HUD Calibration Ring -->
+                        <div class="reactor-ring ring-outer-hud">
+                            <div class="ring-tick tick-0"></div>
+                            <div class="ring-tick tick-45"></div>
+                            <div class="ring-tick tick-90"></div>
+                            <div class="ring-tick tick-135"></div>
+                            <div class="ring-tick tick-180"></div>
+                            <div class="ring-tick tick-225"></div>
+                            <div class="ring-tick tick-270"></div>
+                            <div class="ring-tick tick-315"></div>
+                        </div>
+
+                        <!-- Layer 2: Outer Segmented Rotating Ring -->
+                        <div class="reactor-ring ring-segmented-outer"></div>
+
+                        <!-- Layer 3: Secondary Counter-Rotating Tech Ring -->
+                        <div class="reactor-ring ring-tech-dashed"></div>
+
+                        <!-- Layer 4: Heavy Magnetic Inductor Ring (10 Copper Coils) -->
+                        <div class="reactor-ring ring-inductor-coils">
+                            <div class="coil-bar coil-1"></div>
+                            <div class="coil-bar coil-2"></div>
+                            <div class="coil-bar coil-3"></div>
+                            <div class="coil-bar coil-4"></div>
+                            <div class="coil-bar coil-5"></div>
+                            <div class="coil-bar coil-6"></div>
+                            <div class="coil-bar coil-7"></div>
+                            <div class="coil-bar coil-8"></div>
+                            <div class="coil-bar coil-9"></div>
+                            <div class="coil-bar coil-10"></div>
+                        </div>
+
+                        <!-- Layer 5: Fast Inner Rune / Notch Ring -->
+                        <div class="reactor-ring ring-inner-notches"></div>
+
+                        <!-- Layer 6: Inner Cyan Aura Glow Ring -->
+                        <div class="reactor-ring ring-inner-aura"></div>
+
+                        <!-- Layer 7: Palladium Triangular Housing Core -->
+                        <div class="triangular-core-housing">
+                            <div class="triangle-core-outer"></div>
+                            <div class="triangle-core-inner"></div>
+                            <div class="triangle-glow-center"></div>
+                        </div>
+
+                        <!-- Layer 8: Radiant Central Core Aperture -->
+                        <div class="reactor-center-aperture">
+                            <div class="core-light-beam"></div>
+                            <div class="core-pulse-orb"></div>
+                            <i class="fa-solid fa-microphone-lines center-mic-glyph"></i>
+                        </div>
+
+                        <!-- Holographic Crosshairs -->
+                        <div class="hud-crosshair crosshair-h"></div>
+                        <div class="hud-crosshair crosshair-v"></div>
+                    </div>
+                </div>
+
+                <!-- Status Prompts and Action Controls below Reactor -->
+                <div class="reactor-status-caption">
+                    <div class="reactor-state-badge" id="reactorStateBadge">
+                        <span class="badge-dot"></span>
+                        <span id="reactorStateLabel">IDLE • STANDBY</span>
+                    </div>
+
+                    <h2 class="reactor-primary-prompt" id="reactorPrimaryPrompt">HOW CAN I HELP YOU, SIR?</h2>
+                    
+                    <p class="reactor-secondary-prompt" id="reactorSecondaryPrompt">
+                        <i class="fa-solid fa-headset"></i> Say <strong>"JARVIS"</strong> to activate, or press the button below
+                    </p>
+
+                    <!-- Master Futuristic Microphone Button -->
+                    <div class="mic-button-wrapper">
+                        <button class="master-mic-btn" id="masterMicBtn" aria-label="Activate Microphone Voice Input">
+                            <div class="btn-ripple-layer"></div>
+                            <i class="fa-solid fa-microphone" id="masterMicIcon"></i>
+                            <span class="mic-btn-label" id="masterMicLabel">VOICE COMMAND</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- HUD Targeting Bracket Bottom -->
+                <div class="hud-target-bracket bracket-bottom">
+                    <span>SECURITY CLEARANCE: LEVEL 9 (STARK INDUSTRIES)</span>
+                    <span id="aiModelBadge">AI MODEL: LLAMA 3.3 70B (GROQ)</span>
+                </div>
+            </section>
+
+            <!-- ====== RIGHT COLUMN: SYSTEM MONITOR & ACTIVITY ====== -->
+            <aside class="hud-panel right-panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <i class="fa-solid fa-gauge-high panel-icon"></i>
+                        <h2>SYSTEM TELEMETRY</h2>
+                    </div>
+                    <span class="hud-chip chip-success" id="serverStatusChip">CORE ONLINE</span>
+                </div>
+
+                <div class="panel-content">
+                    <!-- Circular Gauges Grid -->
+                    <div class="hud-card telemetry-gauges-card">
+                        <div class="card-label-row">
+                            <span class="card-label">NEURAL HARDWARE METRICS</span>
+                            <span class="refresh-indicator"><i class="fa-solid fa-arrows-rotate fa-spin"></i> LIVE</span>
+                        </div>
+                        <div class="gauges-grid">
+                            
+                            <!-- CPU Gauge -->
+                            <div class="gauge-item">
+                                <div class="circular-gauge" data-percent="24" id="cpuGaugeContainer">
+                                    <svg class="gauge-svg" viewBox="0 0 100 100">
+                                        <circle class="gauge-bg" cx="50" cy="50" r="42"></circle>
+                                        <circle class="gauge-progress gauge-cyan" id="cpuGaugeRing" cx="50" cy="50" r="42"></circle>
+                                    </svg>
+                                    <div class="gauge-val" id="cpuGaugeVal">24%</div>
+                                </div>
+                                <span class="gauge-label">CPU LOAD</span>
+                            </div>
+
+                            <!-- RAM Gauge -->
+                            <div class="gauge-item">
+                                <div class="circular-gauge" data-percent="48" id="ramGaugeContainer">
+                                    <svg class="gauge-svg" viewBox="0 0 100 100">
+                                        <circle class="gauge-bg" cx="50" cy="50" r="42"></circle>
+                                        <circle class="gauge-progress gauge-blue" id="ramGaugeRing" cx="50" cy="50" r="42"></circle>
+                                    </svg>
+                                    <div class="gauge-val" id="ramGaugeVal">48%</div>
+                                </div>
+                                <span class="gauge-label">MEMORY</span>
+                            </div>
+
+                            <!-- Network Gauge -->
+                            <div class="gauge-item">
+                                <div class="circular-gauge" data-percent="88" id="netGaugeContainer">
+                                    <svg class="gauge-svg" viewBox="0 0 100 100">
+                                        <circle class="gauge-bg" cx="50" cy="50" r="42"></circle>
+                                        <circle class="gauge-progress gauge-cyan" id="netGaugeRing" cx="50" cy="50" r="42"></circle>
+                                    </svg>
+                                    <div class="gauge-val" id="netGaugeVal">92%</div>
+                                </div>
+                                <span class="gauge-label">NETWORK</span>
+                            </div>
+
+                            <!-- Storage Gauge -->
+                            <div class="gauge-item">
+                                <div class="circular-gauge" data-percent="55" id="storageGaugeContainer">
+                                    <svg class="gauge-svg" viewBox="0 0 100 100">
+                                        <circle class="gauge-bg" cx="50" cy="50" r="42"></circle>
+                                        <circle class="gauge-progress gauge-gold" id="storageGaugeRing" cx="50" cy="50" r="42"></circle>
+                                    </svg>
+                                    <div class="gauge-val" id="storageGaugeVal">55%</div>
+                                </div>
+                                <span class="gauge-label">STORAGE</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Holographic 3D AI Core Canvas -->
+                    <div class="hud-card hologram-card">
+                        <div class="card-label-row">
+                            <span class="card-label">HOLOGRAPHIC NEURAL MATRIX</span>
+                            <span class="holo-status">3D SYNC ACTIVE</span>
+                        </div>
+                        <div class="hologram-canvas-container">
+                            <canvas id="hologramCanvas" width="300" height="130"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Quick Access Apps Grid -->
+                    <div class="hud-card apps-hub-card">
+                        <div class="card-label-row">
+                            <span class="card-label">INTEGRATED SUBSYSTEMS</span>
+                        </div>
+                        <div class="apps-hub-grid">
+                            <button class="app-icon-btn" id="appBtnYouTube" title="Launch YouTube">
+                                <i class="fa-brands fa-youtube icon-youtube"></i>
+                                <span>YouTube</span>
+                            </button>
+                            <button class="app-icon-btn" id="appBtnCalc" title="Open Sci-Fi Calculator">
+                                <i class="fa-solid fa-calculator icon-calc"></i>
+                                <span>Calc</span>
+                            </button>
+                            <button class="app-icon-btn" id="appBtnNotepad" title="Open Cyber Notepad">
+                                <i class="fa-solid fa-pen-to-square icon-notes"></i>
+                                <span>Notepad</span>
+                            </button>
+                            <button class="app-icon-btn" id="appBtnWeather" title="Atmospheric Radar">
+                                <i class="fa-solid fa-cloud-sun-rain icon-weather"></i>
+                                <span>Weather</span>
+                            </button>
+                            <button class="app-icon-btn" id="appBtnNews" title="Stark News Intel">
+                                <i class="fa-solid fa-newspaper icon-news"></i>
+                                <span>News</span>
+                            </button>
+                            <button class="app-icon-btn" id="appBtnMaps" title="Satellite Maps">
+                                <i class="fa-solid fa-earth-americas icon-maps"></i>
+                                <span>Maps</span>
+                            </button>
+                            <button class="app-icon-btn" id="appBtnMusic" title="Audio Stream">
+                                <i class="fa-solid fa-music icon-music"></i>
+                                <span>Music</span>
+                            </button>
+                            <button class="app-icon-btn" id="appBtnMail" title="Secure Comms">
+                                <i class="fa-solid fa-envelope icon-mail"></i>
+                                <span>Mail</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Feed -->
+                    <div class="hud-card activity-feed-card">
+                        <div class="card-label-row">
+                            <span class="card-label">RECENT SYSTEM ACTIVITY</span>
+                            <button class="btn-text-action" id="refreshActivityBtn"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+                        <div class="activity-feed-list" id="activityFeedList">
+                            <!-- Items populated dynamically via JS -->
+                            <div class="activity-item info">
+                                <span class="activity-time">00:00:01</span>
+                                <span class="activity-text">JARVIS Core Initialized</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- ================= BOTTOM CONVERSATION FEED & INPUT ================= -->
+        <section class="hud-chat-section">
+            
+            <!-- Conversation Feed Window -->
+            <div class="chat-viewport-card">
+                <div class="chat-header-bar">
+                    <div class="chat-header-left">
+                        <i class="fa-solid fa-terminal text-cyan"></i>
+                        <span class="chat-title">SECURE COMMUNICATIONS CHANNEL // JARVIS &lt;=&gt; SIR</span>
+                    </div>
+                    <div class="chat-header-right">
+                        <span class="comm-status" id="commStatusBadge">● CHANNEL ENCRYPTED (AES-256)</span>
+                    </div>
+                </div>
+
+                <!-- Messages Feed -->
+                <div class="chat-messages-container" id="chatMessagesContainer">
+                    
+                    <!-- Welcome / Initial greeting from JARVIS -->
+                    <div class="chat-message message-jarvis message-enter">
+                        <div class="msg-avatar-wrapper">
+                            <div class="msg-avatar jarvis-avatar">
+                                <i class="fa-solid fa-atom"></i>
+                            </div>
+                        </div>
+                        <div class="msg-body">
+                            <div class="msg-meta">
+                                <span class="msg-author">J.A.R.V.I.S</span>
+                                <span class="msg-time" id="initialMsgTime">10:00 AM</span>
+                                <span class="msg-tag">SYSTEM READY</span>
+                            </div>
+                            <div class="msg-content">
+                                Good day, Sir. All Mark VII diagnostic protocols are online and operating at maximum efficiency.
+                                How may I assist you today? You may speak aloud or type your command below.
+                            </div>
+                            <div class="msg-actions">
+                                <button class="msg-action-btn speak-msg-btn" title="Speak this response">
+                                    <i class="fa-solid fa-volume-high"></i> Listen
+                                </button>
+                                <button class="msg-action-btn copy-msg-btn" title="Copy message text">
+                                    <i class="fa-solid fa-copy"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Typing / Processing Indicator -->
+                <div class="typing-indicator-bar" id="typingIndicatorBar" style="display: none;">
+                    <div class="typing-arc-mini"></div>
+                    <div class="typing-text">JARVIS IS COMPUTING RESPONSE...</div>
+                    <div class="typing-wave">
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+
+                <!-- Bottom Command Input Bar -->
+                <div class="chat-input-wrapper">
+                    <form id="chatForm" class="chat-input-form">
+                        <div class="input-glow-wrapper">
+                            <i class="fa-solid fa-chevron-right input-prefix-icon"></i>
+                            <input 
+                                type="text" 
+                                id="chatTextInput" 
+                                class="cyber-text-input" 
+                                placeholder="Type your command, Sir (e.g. 'Search web for quantum physics', 'Tell me a joke')..." 
+                                autocomplete="off"
+                            >
+                            <button type="button" class="input-tool-btn" id="inputMicToggleBtn" title="Voice Input Toggle" aria-label="Toggle Voice Input">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                            <button type="submit" class="cyber-send-btn" id="sendMsgBtn" title="Send Command" aria-label="Send Command">
+                                <span>TRANSMIT</span>
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= CYBER DECK BOTTOM NAVIGATION ================= -->
+        <footer class="hud-cyberdeck-footer">
+            <div class="nav-group nav-left">
+                <button class="cyber-nav-btn active" id="navHomeBtn">
+                    <i class="fa-solid fa-house"></i>
+                    <span>HOME</span>
+                </button>
+                <button class="cyber-nav-btn" id="navSystemBtn">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span>SYSTEM</span>
+                </button>
+                <button class="cyber-nav-btn" id="navMediaBtn">
+                    <i class="fa-solid fa-photo-film"></i>
+                    <span>MEDIA</span>
+                </button>
+            </div>
+
+            <div class="nav-center-reactor" id="navCenterReactorBtn" title="Arc Reactor Core Status">
+                <div class="mini-arc-icon">
+                    <div class="mini-triangle"></div>
+                </div>
+            </div>
+
+            <div class="nav-group nav-right">
+                <button class="cyber-nav-btn" id="navWebBtn">
+                    <i class="fa-solid fa-globe"></i>
+                    <span>WEB</span>
+                </button>
+                <button class="cyber-nav-btn" id="navFilesBtn">
+                    <i class="fa-solid fa-folder-tree"></i>
+                    <span>FILES</span>
+                </button>
+                <button class="cyber-nav-btn" id="navSettingsBtn">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>SETTINGS</span>
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- ================= MODALS & TOOLS OVERLAYS ================= -->
+
+    <!-- 1. Quantum Calculator Modal -->
+    <div class="hud-modal" id="calculatorModal">
+        <div class="hud-modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <i class="fa-solid fa-calculator text-cyan"></i>
+                    <h3>QUANTUM CALCULATOR // MARK VII</h3>
+                </div>
+                <button class="modal-close-btn" data-modal="calculatorModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="calc-display-screen" id="calcDisplay">0</div>
+                <div class="calc-keypad-grid">
+                    <button class="calc-btn btn-op" data-val="C">C</button>
+                    <button class="calc-btn btn-op" data-val="CE">CE</button>
+                    <button class="calc-btn btn-op" data-val="%">%</button>
+                    <button class="calc-btn btn-op" data-val="/">÷</button>
+                    <button class="calc-btn" data-val="7">7</button>
+                    <button class="calc-btn" data-val="8">8</button>
+                    <button class="calc-btn" data-val="9">9</button>
+                    <button class="calc-btn btn-op" data-val="*">×</button>
+                    <button class="calc-btn" data-val="4">4</button>
+                    <button class="calc-btn" data-val="5">5</button>
+                    <button class="calc-btn" data-val="6">6</button>
+                    <button class="calc-btn btn-op" data-val="-">-</button>
+                    <button class="calc-btn" data-val="1">1</button>
+                    <button class="calc-btn" data-val="2">2</button>
+                    <button class="calc-btn" data-val="3">3</button>
+                    <button class="calc-btn btn-op" data-val="+">+</button>
+                    <button class="calc-btn" data-val="0">0</button>
+                    <button class="calc-btn" data-val=".">.</button>
+                    <button class="calc-btn btn-op" data-val="sqrt">√</button>
+                    <button class="calc-btn btn-equal" data-val="=">=</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Cyber Notepad Modal -->
+    <div class="hud-modal" id="notepadModal">
+        <div class="hud-modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <i class="fa-solid fa-pen-to-square text-cyan"></i>
+                    <h3>STARK INDUSTRIES // ENCRYPTED SCRATCHPAD</h3>
+                </div>
+                <button class="modal-close-btn" data-modal="notepadModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="notepadTextarea" class="cyber-textarea" placeholder="Enter confidential notes, calculations, or schematics here, Sir..."></textarea>
+                <div class="modal-footer-row">
+                    <span class="note-save-status" id="noteSaveStatus">Saved to local memory matrix</span>
+                    <div class="btn-group">
+                        <button class="hud-btn btn-secondary" id="clearNoteBtn">Clear</button>
+                        <button class="hud-btn btn-primary" id="saveNoteBtn">Save Note</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Web Search Query Modal -->
+    <div class="hud-modal" id="searchModal">
+        <div class="hud-modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <i class="fa-solid fa-magnifying-glass text-cyan"></i>
+                    <h3>GLOBAL WEB SEARCH TERMINAL</h3>
+                </div>
+                <button class="modal-close-btn" data-modal="searchModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-input-group">
+                    <input type="text" id="modalSearchInput" class="cyber-text-input" placeholder="Search the web (Google, DuckDuckGo, Bing)...">
+                    <button class="hud-btn btn-primary" id="modalSearchExecBtn">Launch Search</button>
+                </div>
+                <div class="search-engines-row">
+                    <label><input type="radio" name="searchEngine" value="google" checked> Google</label>
+                    <label><input type="radio" name="searchEngine" value="duckduckgo"> DuckDuckGo</label>
+                    <label><input type="radio" name="searchEngine" value="bing"> Bing</label>
+                    <label><input type="radio" name="searchEngine" value="youtube"> YouTube</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Settings & Voice Config Modal -->
+    <div class="hud-modal" id="settingsModal">
+        <div class="hud-modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <i class="fa-solid fa-sliders text-cyan"></i>
+                    <h3>SYSTEM CONFIGURATION // J.A.R.V.I.S</h3>
+                </div>
+                <button class="modal-close-btn" data-modal="settingsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <h4>SYNTHESIS VOICE ENGINE</h4>
+                    <div class="setting-item">
+                        <label for="voiceSelect">Selected Speech Voice:</label>
+                        <select id="voiceSelect" class="cyber-select"></select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="speechRateRange">Speech Rate: <span id="speechRateVal">1.05x</span></label>
+                        <input type="range" id="speechRateRange" min="0.7" max="1.4" step="0.05" value="1.05" class="cyber-range">
+                    </div>
+                    <div class="setting-item">
+                        <label for="speechPitchRange">Voice Pitch: <span id="speechPitchVal">0.95</span></label>
+                        <input type="range" id="speechPitchRange" min="0.7" max="1.3" step="0.05" value="0.95" class="cyber-range">
+                    </div>
+                    <button class="hud-btn btn-secondary" id="testVoiceBtn">Test Voice Audio</button>
+                </div>
+
+                <div class="settings-group">
+                    <h4>BACKEND UPLINK</h4>
+                    <div class="setting-item">
+                        <label for="backendUrlInput">Django API Base URL:</label>
+                        <input type="text" id="backendUrlInput" class="cyber-text-input" value="http://127.0.0.1:8000">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Files / Archives Modal -->
+    <div class="hud-modal" id="filesModal">
+        <div class="hud-modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <i class="fa-solid fa-folder-tree text-cyan"></i>
+                    <h3>ARC DATA ARCHIVES // FILE SYSTEM</h3>
+                </div>
+                <button class="modal-close-btn" data-modal="filesModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="files-list-grid">
+                    <div class="file-item-card">
+                        <i class="fa-solid fa-file-code file-icon"></i>
+                        <div class="file-info">
+                            <span class="file-name">Mark_VII_Armor_Schematics.cad</span>
+                            <span class="file-meta">48.2 MB • CLASSIFIED</span>
+                        </div>
+                    </div>
+                    <div class="file-item-card">
+                        <i class="fa-solid fa-file-audio file-icon"></i>
+                        <div class="file-info">
+                            <span class="file-name">ACDC_Back_In_Black.flac</span>
+                            <span class="file-meta">32.1 MB • AUDIO</span>
+                        </div>
+                    </div>
+                    <div class="file-item-card">
+                        <i class="fa-solid fa-file-lines file-icon"></i>
+                        <div class="file-info">
+                            <span class="file-name">Arc_Reactor_Efficiency_Report.pdf</span>
+                            <span class="file-meta">4.8 MB • DOC</span>
+                        </div>
+                    </div>
+                    <div class="file-item-card">
+                        <i class="fa-solid fa-database file-icon"></i>
+                        <div class="file-info">
+                            <span class="file-name">Stark_Global_Satellite_Array.db</span>
+                            <span class="file-meta">1.2 GB • DATABASE</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main JavaScript App -->
+    <script src="js/app.js"></script>
+</body>
+</html>
