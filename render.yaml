@@ -4,12 +4,11 @@ services:
     runtime: python
     plan: free
     buildCommand: |
-      cd jarvis_backend
+      python -m pip install --upgrade pip
       pip install -r requirements.txt
-      python manage.py collectstatic --noinput
+      python jarvis_backend/manage.py collectstatic --noinput
     startCommand: |
-      cd jarvis_backend
-      gunicorn jarvis_backend.wsgi:application --bind 0.0.0.0:$PORT
+      gunicorn jarvis_backend.wsgi:application --bind 0.0.0.0:$PORT --chdir jarvis_backend
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.0
