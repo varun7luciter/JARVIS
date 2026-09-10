@@ -1,5 +1,1 @@
-<<<<<<< HEAD
 -r jarvis_backend/requirements.txt
-=======
--r jarvis_backend/requirements.txt
->>>>>>> 3a58650eb273ac846a4edfc32b28861807421b55
