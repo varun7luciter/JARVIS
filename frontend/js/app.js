@@ -16,8 +16,21 @@ const JARVIS_STATE = {
 };
 
 // Global App Configuration & Context
+const getDefaultBackendUrl = () => {
+    const configured = window.__JARVIS_BACKEND_URL__;
+    if (configured) {
+        return configured.replace(/\/$/, '');
+    }
+
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://127.0.0.1:8000';
+    }
+
+    return window.location.origin;
+};
+
 const AppConfig = {
-    backendUrl: 'http://127.0.0.1:8000',
+    backendUrl: getDefaultBackendUrl(),
     wakeWord: 'jarvis',
     speechRate: 1.05,
     speechPitch: 0.95,
